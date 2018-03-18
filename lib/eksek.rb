@@ -2,10 +2,10 @@
 
 require 'open3'
 
-class EksekError < StandardError
-end
+require_relative 'eksek_error'
+require_relative 'eksekuter'
 
-# Executes she ll commands and can be specified to return the standard output,
+# Executes shell commands and can be specified to return the standard output,
 # standard error, etc.
 # Accepts the same options as Process.spawn e.g. :chdir, :env.
 class Eksek
@@ -14,84 +14,23 @@ class Eksek
   ].freeze
 
   class << self
-    def respond_to_missing?(name, include_private)
-      return true if method_name_valid? name
-      super name, include_private
+    def respond_to_missing? name, include_private
+      method_name_valid?(name) || super
     end
 
-    def method_missing(symbol, *args)
-      return super symbol, args unless method_name_valid? symbol
+    def method_missing symbol, *args, &block
+      return super unless method_name_valid? symbol
       methods = symbol.to_s.split('_').map(&:to_sym)
       cmd, opts = validate_args(args)
-      stdin, stdout, stderr, stdouterr, wait_thr = spawn(cmd, opts)
-      read_block_into_stdin((yield stdin), stdin) if block_given?
-      stdin.close
-      process_status = wait_thr.value
-      outs = [stdout, stderr, stdouterr].map do |stream|
-        result = stream.read.chomp
-        stream.close
-        result
-      end
-      assemble_result cmd, methods, outs[0], outs[1], outs[2], process_status
+      Eksekuter.new(methods, cmd, opts).run(&block)
     end
 
-    def read_block_into_stdin(block_result, stdin)
-      return if stdin.closed?
-      if block_result.is_a? String
-        stdin.write block_result
-        return nil
-      end
-      if block_result.respond_to? :read
-        IO.copy_stream(block_result, stdin)
-        return nil
-      end
-      nil
-    end
-
-    # @return stdin, stdout, stderr, stdouterr, wait_thr with nil for
-    # stdout/stderr/stdouterr depending on which should be defined and which
-    # not.
-    def spawn(cmd, opts)
-      stdout = stderr = stdouterr = nil
-      if methods.include? :stdouterr
-        stdin, stdouterr, wait = Open3.popen2e(cmd, opts)
-      else
-        stdin, stdout, stderr, wait = Open3.popen3(cmd, opts)
-      end
-      [
-        stdin,
-        stdout ? stdout : dummy_stream,
-        stderr ? stderr : dummy_stream,
-        stdouterr ? stdouterr : dummy_stream,
-        wait,
-      ]
-    end
-
-    def dummy_stream
-      StringIO.new('', 'r')
-    end
-
-    def assemble_result(cmd, methods, stdout, stderr, stdouterr, process_status)
-      fails = methods.include?(:success!) && !process_status.success?
-      raise EksekError, "Command failed: #{cmd.inspect}" if fails
-      method_to_result = {
-        stdout: stdout,
-        stderr: stderr,
-        stdouterr: stdouterr,
-        success?: process_status.success?,
-        exit: process_status.exitstatus,
-      }
-      result = methods.map { |method| method_to_result[method] }
-      return result.first if result.length == 1
-      result
-    end
-
-    def method_name_valid?(name)
+    def method_name_valid? name
       methods = name.to_s.split('_').map(&:to_sym)
       methods.all? { |m| ALLOWED_METHODS.include? m }
     end
 
-    def validate_conflicting_methods(methods)
+    def validate_conflicting_methods methods
       methods_are_conflicting =
         if methods.include? :stdouterr
           methods.include?(:stderr) || methods.include?(:stdout)
@@ -104,7 +43,7 @@ class Eksek
 
     # @return an array of a String and a Hash, representing the command and the
     # opts
-    def validate_args(args)
+    def validate_args args
       raise EksekError, 'Must provide at least a command' if args.empty?
 
       cmd = args[0]
