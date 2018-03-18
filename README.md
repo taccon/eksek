@@ -33,8 +33,6 @@ puts stderr # World
 
 ### Writing to stdin
 
-:warning: TO DO.
-
 To write into the standard input a block can be used:
 
 ```ruby
