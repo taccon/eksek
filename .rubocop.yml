@@ -1,5 +1,7 @@
 AllCops:
   TargetRubyVersion: 2.3
+Style/MethodDefParentheses:
+  EnforcedStyle: require_no_parentheses
 Style/TrailingCommaInArguments:
   EnforcedStyleForMultiline: comma
 Style/TrailingCommaInArrayLiteral:
