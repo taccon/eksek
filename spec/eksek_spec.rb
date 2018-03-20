@@ -6,84 +6,65 @@ require 'eksek'
 
 RSpec.describe Eksek, '#success?' do
   it 'returns true or false' do
-    expect(Eksek.success?('true')).to be(true)
-    expect(Eksek.success?('exit 1')).to be(false)
+    expect(Eksek.ute('true').success?).to be(true)
+    expect(Eksek.ute('exit 1').success?).to be(false)
   end
 end
 
 RSpec.describe Eksek, '#success!' do
   it 'fails on :success! when appropriatly' do
-    expect { Eksek.success!('true') }.not_to raise_error
-    expect { Eksek.success!('exit 1') }.to raise_error EksekError
+    expect { Eksek.ute('true').success! }.not_to raise_error
+    expect { Eksek.ute('exit 1').success! }.to raise_error EksekError
   end
 end
 
 RSpec.describe Eksek, '#exit' do
   it 'returns the exit code' do
-    expect(Eksek.exit('exit 0')).to be(0)
-    expect(Eksek.exit('exit 1')).to be(1)
-    expect(Eksek.exit('exit 7')).to be(7)
-  end
-end
-
-RSpec.describe Eksek, '#respond_to?' do
-  it 'recognizes all basic methods' do
-    expect(Eksek.respond_to?(:stdout)).to be(true)
-    expect(Eksek.respond_to?(:stderr)).to be(true)
-    expect(Eksek.respond_to?(:stdouterr)).to be(true)
-    expect(Eksek.respond_to?(:exit)).to be(true)
-    expect(Eksek.respond_to?(:success?)).to be(true)
-    expect(Eksek.respond_to?(:success!)).to be(true)
-  end
-
-  it 'recognizes some combinations of methods' do
-    expect(Eksek.respond_to?(:stdout_stderr_exit_success!)).to be(true)
-    expect(Eksek.respond_to?(:stdout_stderr_exit_success?)).to be(true)
-    expect(Eksek.respond_to?(:stdouterr_exit_success!)).to be(true)
-    expect(Eksek.respond_to?(:stdouterr_exit_success?)).to be(true)
-  end
-
-  it 'does not recognize other methods' do
-    expect(Eksek.respond_to?(:some_other_method!)).to be(false)
+    expect(Eksek.ute('exit 0').exit_code).to be(0)
+    expect(Eksek.ute('exit 1').exit_code).to be(1)
+    expect(Eksek.ute('exit 7').exit_code).to be(7)
   end
 end
 
 RSpec.describe 'Eksek#stdout, Eksek#stderr' do
-  it 'captures the stdout and stderr separatedly' do
-    expect(Eksek.stdout('echo Hello')).to eq('Hello')
-    expect(Eksek.stderr('echo Hello >&2')).to eq('Hello')
-
-    outerr = Eksek.stdout_stderr('echo Hello; echo World >&2')
-    expect(outerr).to eq(%w[Hello World])
-
-    errout = Eksek.stderr_stdout('echo Hello; echo World >&2')
-    expect(errout).to eq(%w[World Hello])
+  it 'captures the stdout and stderr separately' do
+    expect(Eksek.ute('echo Hello').stdout).to eq('Hello')
+    expect(Eksek.ute('echo Hello >&2').stderr).to eq('Hello')
   end
 end
 
-RSpec.describe 'Eksek#stdouterr' do
-  it 'captures the stdout and stderr together' do
-    outerr = Eksek.stdouterr('echo Hello; echo World >&2')
-    expect(outerr).to eq("Hello\nWorld")
+RSpec.describe 'Eksek#stdout, Eksek#stderr, Eksek#exit_code, Eksek#success!' do
+  it 'lets you combine success! and stdout/stderr/exit_code' do
+    expect(Eksek.ute('echo Hello').success!.stdout).to eq('Hello')
+    expect(Eksek.ute('echo Hello >&2').success!.stderr).to eq('Hello')
+    expect(Eksek.ute('exit 0').success!.exit_code).to be(0)
+    expect { Eksek.ute('exit 1').success!.stdout }.to raise_error EksekError
   end
 end
 
 RSpec.describe 'Standard input' do
   it 'accepts a block where the stdin can be written to' do
-    o = Eksek.stdout('read A B; echo $A, $B') { |i| i.write('Hi world') }
-    expect(o).to eq('Hi, world')
+    o = Eksek.ute('read A B; echo $A, $B') { |i| i.write('Hi world') }
+    expect(o.stdout).to eq('Hi, world')
   end
 
   it 'reads a String that the block returns' do
-    o = Eksek.stdout('read A; echo $A') { 'Hello' }
-    expect(o).to eq('Hello')
+    o = Eksek.ute('read A; echo $A') { 'Hello' }
+    expect(o.stdout).to eq('Hello')
   end
 
   it 'reads an IO that the block returns' do
     Tempfile.open do |f|
       f.write('Hello')
-      o = Eksek.stdout("cat #{f.path}") { f }
-      expect(o).to eq('Hello')
+      o = Eksek.ute("cat #{f.path}") { f }
+      expect(o.stdout).to eq('Hello')
     end
+  end
+end
+
+RSpec.describe Eksek, '#run' do
+  it 'lets you use either Eksek.ute or Eksek.run' do
+    expect(Eksek.ute('true').success?).to be(Eksek.run('true').success?)
+    expect(Eksek.ute('exit 1').success?).to be(Eksek.run('exit 1').success?)
   end
 end
