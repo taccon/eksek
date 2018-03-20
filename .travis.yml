@@ -8,4 +8,5 @@ rvm:
 install:
   - bundle install
 script:
+  - bundle exec rubocop
   - bundle exec rspec --format documentation
