@@ -1,9 +1,10 @@
 # frozen_string_literal: true
 
+require_relative 'eksek_result'
+
 # Class that command execution is delegated to by Eksek.
 class Eksekuter
-  def initialize called_methods, cmd, opts
-    @called_methods = called_methods.freeze
+  def initialize cmd, opts
     @cmd = cmd
     @opts = opts.freeze
   end
@@ -19,12 +20,10 @@ class Eksekuter
   private
 
   attr_reader(
-    :called_methods,
     :cmd,
     :err_str,
     :opts,
     :out_str,
-    :outerr_str,
     :process_status,
     :stdin,
     :wait_thr,
@@ -38,17 +37,8 @@ class Eksekuter
     @stderr ||= StringIO.new('', 'r')
   end
 
-  def stdouterr
-    @stdouterr ||= StringIO.new('', 'r')
-  end
-
   def spawn_process
-    @stdout = @stderr = @stdouterr = nil
-    if called_methods.include? :stdouterr
-      @stdin, @stdouterr, @wait_thr = Open3.popen2e(cmd, opts)
-    else
-      @stdin, @stdout, @stderr, @wait_thr = Open3.popen3(cmd, opts)
-    end
+    @stdin, @stdout, @stderr, @wait_thr = Open3.popen3(cmd, opts)
     nil
   end
 
@@ -66,30 +56,19 @@ class Eksekuter
   end
 
   def read_and_close_stdout_stderr
-    streams = [stdout, stderr, stdouterr]
-    @out_str, @err_str, @outerr_str = streams.map(&:read).map(&:chomp)
+    streams = [stdout, stderr]
+    @out_str, @err_str = streams.map(&:read).map(&:chomp)
     streams.each(&:close)
     nil
   end
 
   def assemble_result
-    raise EksekError, "Command failed: #{cmd.inspect}" if fails?
-    result = called_methods.map { |method| method_to_result_mapping[method] }
-    return result.first if result.length == 1
-    result
-  end
-
-  def fails?
-    @fails ||= called_methods.include?(:success!) && !process_status.success?
-  end
-
-  def method_to_result_mapping
-    @method_to_result_mapping ||= {
-      stdout: out_str,
-      stderr: err_str,
-      stdouterr: outerr_str,
-      success?: process_status.success?,
-      exit: process_status.exitstatus,
-    }.freeze
+    EksekResult.new(
+      cmd,
+      process_status.exitstatus,
+      process_status.success?,
+      out_str,
+      err_str,
+    )
   end
 end
