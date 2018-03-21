@@ -6,31 +6,27 @@
 
 ## Features
 
-### Basic methods
+### Basic usage
+
+Use the `Eksek.ute` to execute a command:
+
+```ruby
+Eksek.ute 'echo Hello'
+```
+
+This returns a result object (*EksekResult*) providing the following methods:
 
 - `exit` returns the exit code.
 - `stdout` returns the standard output as a string.
 - `stderr` returns the standard error as a string.
-- `stdouterr` returns the standard output and error in a single string.
 - `success?` returns `true` or `false` depending of the exit code (`0` for `true`).
 - `success!` throws an exception if the command exited with a non-0 code.
 
-For example
+The `success!` method can be chained with any other of the above ones to have a "fail or return" like so:
 
 ```ruby
-puts Eksek.stdout 'echo Hello' # Hello
-```
-
-### Chaining methods together
-
-Any of the above methods can be chained in almost any order, except `success?` and `success!`, which can only occur at the end of the method; and `stdout` and `stderr` cannot be used together with `stdouterr`.
-
-For example:
-
-```ruby
-stdout, stderr = Eksek.stdout_stderr_success! 'echo Hello; echo World >&2'
-puts stdout # Hello
-puts stderr # World
+r = Eksek.ute 'echo Hello'
+puts r.success!.stdout # Hello
 ```
 
 ### Writing to stdin
@@ -38,25 +34,35 @@ puts stderr # World
 To write into the standard input a block can be used:
 
 ```ruby
-Eksek.success! 'read A; echo $A' { |stdin| stdin.write "Hello" }
+r = Eksek.ute('read A; echo $A') { |stdin| stdin.write "Hello" }
+r.success!
 ```
 
 If the block returns a `String` or `IO`, it will be written into the stdio.
 
 ```ruby
-Eksek.success! 'read A; echo $A' { "Hello" }
-Eksek.success! 'read A; echo $A' { File.open('myfile.txt') }
+r = Eksek('read A; echo $A') { "Hello" }
+r.success!
+
+r = Eksek('read A; echo $A') { File.open('myfile.txt') }
+r.success!
 ```
 
 
 ### Passing other options
 
-Any of those methods can accept a hash of options, according to `Process::spawn`.
+The run method can accept a hash of options, according to `Process::spawn`.
 
 Additionally, a hash passed as `:env` will have its keys stringified, so that symbols can be used to. For example:
 
 ```ruby
-Eksek.stdout 'echo $A', env: {A: "Hello"} # Hello
+r = Eksek.ute 'echo $A', env: {A: "Hello"}
+r.stdout # Hello
 
-Eksek.stdout 'echo $PWD', chdir: '/tmp' # /tmp
+r = Eksek.ute 'echo $PWD', chdir: '/tmp'
+r.stdout # /tmp
 ```
+
+### Trivia
+
+`Eksek.ute` is also aliased as `Eksek.run`. In case you prefer a more conservative naming, everything just works the same.
