@@ -54,11 +54,16 @@ RSpec.describe 'Standard input' do
   end
 
   it 'reads an IO that the block returns' do
-    Tempfile.open do |f|
-      f.write('Hello')
-      o = Eksek.ute("cat #{f.path}") { f }
-      expect(o.stdout).to eq('Hello')
+    file = Tempfile.open
+    file.write('Hello')
+    file.close
+
+    File.open(file.path) do |f|
+      o = Eksek.ute('read A; echo $A!!!') { f }
+      expect(o.stdout).to eq('Hello!!!')
     end
+
+    file.unlink
   end
 end
 
