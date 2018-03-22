@@ -4,52 +4,52 @@ require 'tempfile'
 
 require 'eksek'
 
-RSpec.describe Eksek, '#success?' do
+RSpec.describe 'eksek#success?' do
   it 'returns true or false' do
-    expect(Eksek.ute('true').success?).to be(true)
-    expect(Eksek.ute('exit 1').success?).to be(false)
+    expect(eksek('true').success?).to be(true)
+    expect(eksek('exit 1').success?).to be(false)
   end
 end
 
-RSpec.describe Eksek, '#success!' do
-  it 'fails on :success! when appropriatly' do
-    expect { Eksek.ute('true').success! }.not_to raise_error
-    expect { Eksek.ute('exit 1').success! }.to raise_error EksekError
+RSpec.describe '#eksek!' do
+  it 'fails on :eksek! when appropriatly' do
+    expect { eksek! 'true' }.not_to raise_error
+    expect { eksek! 'exit 1' }.to raise_error EksekError
   end
 end
 
-RSpec.describe Eksek, '#exit' do
+RSpec.describe 'eksek#exit' do
   it 'returns the exit code' do
-    expect(Eksek.ute('exit 0').exit_code).to be(0)
-    expect(Eksek.ute('exit 1').exit_code).to be(1)
-    expect(Eksek.ute('exit 7').exit_code).to be(7)
+    expect(eksek('exit 0').exit_code).to be(0)
+    expect(eksek('exit 1').exit_code).to be(1)
+    expect(eksek('exit 7').exit_code).to be(7)
   end
 end
 
-RSpec.describe 'Eksek#stdout, Eksek#stderr' do
+RSpec.describe 'eksek#stdout, eksek#stderr' do
   it 'captures the stdout and stderr separately' do
-    expect(Eksek.ute('echo Hello').stdout).to eq('Hello')
-    expect(Eksek.ute('echo Hello >&2').stderr).to eq('Hello')
+    expect(eksek('echo Hello').stdout).to eq('Hello')
+    expect(eksek('echo Hello >&2').stderr).to eq('Hello')
   end
 end
 
-RSpec.describe 'Eksek#stdout, Eksek#stderr, Eksek#exit_code, Eksek#success!' do
-  it 'lets you combine success! and stdout/stderr/exit_code' do
-    expect(Eksek.ute('echo Hello').success!.stdout).to eq('Hello')
-    expect(Eksek.ute('echo Hello >&2').success!.stderr).to eq('Hello')
-    expect(Eksek.ute('exit 0').success!.exit_code).to be(0)
-    expect { Eksek.ute('exit 1').success!.stdout }.to raise_error EksekError
+RSpec.describe 'eksek#stdout, eksek#stderr, eksek#exit_code, eksek!' do
+  it 'lets you combine eksek! and stdout/stderr/exit_code' do
+    expect(eksek!('echo Hello').stdout).to eq('Hello')
+    expect(eksek!('echo Hello >&2').stderr).to eq('Hello')
+    expect(eksek!('exit 0').exit_code).to be(0)
+    expect { eksek!('exit 1').stdout }.to raise_error EksekError
   end
 end
 
 RSpec.describe 'Standard input' do
   it 'accepts a block where the stdin can be written to' do
-    o = Eksek.ute('read A B; echo $A, $B') { |i| i.write('Hi world') }
+    o = eksek('read A B; echo $A, $B') { |i| i.write('Hi world') }
     expect(o.stdout).to eq('Hi, world')
   end
 
   it 'reads a String that the block returns' do
-    o = Eksek.ute('read A; echo $A') { 'Hello' }
+    o = eksek('read A; echo $A') { 'Hello' }
     expect(o.stdout).to eq('Hello')
   end
 
@@ -59,17 +59,10 @@ RSpec.describe 'Standard input' do
     file.close
 
     File.open(file.path) do |f|
-      o = Eksek.ute('read A; echo $A!!!') { f }
+      o = eksek('read A; echo $A!!!') { f }
       expect(o.stdout).to eq('Hello!!!')
     end
 
     file.unlink
-  end
-end
-
-RSpec.describe Eksek, '#run' do
-  it 'lets you use either Eksek.ute or Eksek.run' do
-    expect(Eksek.ute('true').success?).to be(Eksek.run('true').success?)
-    expect(Eksek.ute('exit 1').success?).to be(Eksek.run('exit 1').success?)
   end
 end

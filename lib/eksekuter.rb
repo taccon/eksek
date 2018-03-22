@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'open3'
+
 require_relative 'eksek_result'
 
 # Class that command execution is delegated to by Eksek.

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'eksek_result'
+require_relative 'eksek_error'
 
 # Describes a result object to be used for evaluating
 # return values from a command
