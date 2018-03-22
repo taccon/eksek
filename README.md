@@ -1,6 +1,6 @@
 # eksek
 
-![Travis](https://img.shields.io/travis/jleeothon/eksek.svg)
+[![Travis](https://img.shields.io/travis/jleeothon/eksek.svg)](https://travis-ci.org/jleeothon/eksek)
 
 `eksek` is a library to run shell commands synchronously and obtain any of the standard output, standard error, and exit code with flexibility.
 
