@@ -44,13 +44,13 @@ end
 
 RSpec.describe 'Standard input' do
   it 'accepts a block where the stdin can be written to' do
-    o = eksek('read A B; echo $A, $B') { |i| i.write('Hi world') }
-    expect(o.stdout).to eq('Hi, world')
+    result = eksek('read A B; echo $A, $B') { |i| i.write('Hi world') }
+    expect(result.stdout).to eq('Hi, world')
   end
 
   it 'reads a String that the block returns' do
-    o = eksek('read A; echo $A') { 'Hello' }
-    expect(o.stdout).to eq('Hello')
+    result = eksek('read A; echo $A') { 'Hello' }
+    expect(result.stdout).to eq('Hello')
   end
 
   it 'reads an IO that the block returns' do
@@ -59,10 +59,27 @@ RSpec.describe 'Standard input' do
     file.close
 
     File.open(file.path) do |f|
-      o = eksek('read A; echo $A!!!') { f }
-      expect(o.stdout).to eq('Hello!!!')
+      result = eksek('read A; echo $A!!!') { f }
+      expect(result.stdout).to eq('Hello!!!')
     end
 
     file.unlink
+  end
+end
+
+RSpec.describe 'Kernel#spawn-style parameters' do
+  it 'accepts a Hash as an optional first parameter' do
+    result = eksek({ 'TEXT' => 'Hello' }, 'echo $TEXT')
+    expect(result.stdout).to eq('Hello')
+  end
+
+  it 'stringifies the keys of the environment' do
+    result = eksek({ TEXT: 'Hello' }, 'echo $TEXT')
+    expect(result.stdout).to eq('Hello')
+  end
+
+  it 'accepts a variable-length parameter list as command' do
+    result = eksek 'echo', 'Hello', 'World'
+    expect(result.stdout).to eq('Hello World')
   end
 end
