@@ -3,53 +3,62 @@
 require 'tempfile'
 
 require 'eksek'
+require 'eksekuter'
 
-RSpec.describe 'eksek#success?' do
+RSpec.describe 'Eksekuter#run.success?' do
   it 'returns true or false' do
-    expect(eksek('true').success?).to be(true)
-    expect(eksek('exit 1').success?).to be(false)
+    expect(Eksekuter.new('true').run.success?).to be(true)
+    expect(Eksekuter.new('exit 1').run.success?).to be(false)
   end
 end
 
-RSpec.describe '#eksek!' do
-  it 'fails on :eksek! when appropriatly' do
+RSpec.describe 'Eksekuter#run.success! and #eksek!' do
+  it 'fails on Eksekuter#success! and :eksek! when appropriatly' do
+    expect { Eksekuter.new('true').run.success! }.not_to raise_error
+    expect { Eksekuter.new('exit 1').run.success! }.to raise_error EksekError
+
     expect { eksek! 'true' }.not_to raise_error
     expect { eksek! 'exit 1' }.to raise_error EksekError
   end
 end
 
-RSpec.describe 'eksek#exit' do
+RSpec.describe 'Eksekuter#run.exit_code' do
   it 'returns the exit code' do
-    expect(eksek('exit 0').exit_code).to be(0)
-    expect(eksek('exit 1').exit_code).to be(1)
-    expect(eksek('exit 7').exit_code).to be(7)
+    expect(Eksekuter.new('exit 0').run.exit_code).to be(0)
+    expect(Eksekuter.new('exit 1').run.exit_code).to be(1)
+    expect(Eksekuter.new('exit 7').run.exit_code).to be(7)
   end
 end
 
-RSpec.describe 'eksek#stdout, eksek#stderr' do
+RSpec.describe 'Eksekuter#run.stdout, Eksekuter#run.stderr' do
   it 'captures the stdout and stderr separately' do
     expect(eksek('echo Hello').stdout).to eq('Hello')
     expect(eksek('echo Hello >&2').stderr).to eq('Hello')
   end
 end
 
-RSpec.describe 'eksek#stdout, eksek#stderr, eksek#exit_code, eksek!' do
-  it 'lets you combine eksek! and stdout/stderr/exit_code' do
-    expect(eksek!('echo Hello').stdout).to eq('Hello')
-    expect(eksek!('echo Hello >&2').stderr).to eq('Hello')
-    expect(eksek!('exit 0').exit_code).to be(0)
-    expect { eksek!('exit 1').stdout }.to raise_error EksekError
+RSpec.describe 'Eksekuter#run.success! chaining' do
+  it 'lets you combine EksekResult#run.success! and stdout/stderr/exit_code' do
+    expect(Eksekuter.new('echo Hello').run.success!.stdout).to eq('Hello')
+    expect(Eksekuter.new('echo Hello >&2').run.success!.stderr).to eq('Hello')
+    expect(Eksekuter.new('exit 0').run.success!.exit_code).to be(0)
+    expect { Eksekuter.new('exit 1').run.success!.stdout }
+      .to raise_error EksekError
   end
 end
 
 RSpec.describe 'Standard input' do
   it 'accepts a block where the stdin can be written to' do
+    result = Eksekuter.new('read A B; echo $A, $B')
+                      .run { |i| i.write('Hi world') }
+    expect(result.stdout).to eq('Hi, world')
+
     result = eksek('read A B; echo $A, $B') { |i| i.write('Hi world') }
     expect(result.stdout).to eq('Hi, world')
   end
 
   it 'reads a String that the block returns' do
-    result = eksek('read A; echo $A') { 'Hello' }
+    result = Eksekuter.new('read A; echo $A').run { 'Hello' }
     expect(result.stdout).to eq('Hello')
   end
 
@@ -59,7 +68,7 @@ RSpec.describe 'Standard input' do
     file.close
 
     File.open(file.path) do |f|
-      result = eksek('read A; echo $A!!!') { f }
+      result = Eksekuter.new('read A; echo $A!!!').run { f }
       expect(result.stdout).to eq('Hello!!!')
     end
 
@@ -69,16 +78,25 @@ end
 
 RSpec.describe 'Kernel#spawn-style parameters' do
   it 'accepts a Hash as an optional first parameter' do
+    result = Eksekuter.new({ 'TEXT' => 'Hello' }, 'echo $TEXT').run
+    expect(result.stdout).to eq('Hello')
+
     result = eksek({ 'TEXT' => 'Hello' }, 'echo $TEXT')
     expect(result.stdout).to eq('Hello')
   end
 
   it 'stringifies the keys of the environment' do
+    result = Eksekuter.new({ TEXT: 'Hello' }, 'echo $TEXT').run
+    expect(result.stdout).to eq('Hello')
+
     result = eksek({ TEXT: 'Hello' }, 'echo $TEXT')
     expect(result.stdout).to eq('Hello')
   end
 
   it 'accepts a variable-length parameter list as command' do
+    result = Eksekuter.new('echo', 'Hello', 'World').run
+    expect(result.stdout).to eq('Hello World')
+
     result = eksek 'echo', 'Hello', 'World'
     expect(result.stdout).to eq('Hello World')
   end
