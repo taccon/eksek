@@ -8,11 +8,11 @@ require_relative 'eksekuter'
 module Kernel
   private
 
-  def eksek cmd, opts = {}, &block
-    Eksekuter.new(cmd, opts).run(&block)
+  def eksek *args, **opts, &block
+    Eksekuter.new(*args, **opts).run(&block)
   end
 
-  def eksek! cmd, opts = {}, &block
-    eksek(cmd, opts, &block).success!
+  def eksek! *args, **opts, &block
+    eksek(*args, **opts, &block).success!
   end
 end

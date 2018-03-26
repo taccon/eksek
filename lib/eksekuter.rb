@@ -6,9 +6,11 @@ require_relative 'eksek_result'
 
 # Class that command execution is delegated to by Eksek.
 class Eksekuter
-  def initialize cmd, opts
-    @cmd = cmd
-    @opts = opts.freeze
+  def initialize *args, **opts
+    @env = args[0].is_a?(Hash) ? args.shift : {}
+    @env = @env.each_with_object({}) { |(k, v), o| o[k.to_s] = v }
+    @cmd = args.size == 1 ? args.first : args
+    @opts = opts
   end
 
   def run &block
@@ -23,6 +25,7 @@ class Eksekuter
 
   attr_reader(
     :cmd,
+    :env,
     :err_str,
     :opts,
     :out_str,
@@ -40,7 +43,7 @@ class Eksekuter
   end
 
   def spawn_process
-    @stdin, @stdout, @stderr, @wait_thr = Open3.popen3(cmd, opts)
+    @stdin, @stdout, @stderr, @wait_thr = Open3.popen3(env, *cmd, opts)
     nil
   end
 
@@ -66,6 +69,7 @@ class Eksekuter
 
   def assemble_result
     EksekResult.new(
+      env,
       cmd,
       process_status.exitstatus,
       process_status.success?,

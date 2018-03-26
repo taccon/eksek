@@ -14,7 +14,7 @@ Use the `eksek` to execute a command:
 eksek 'echo Hello'
 ```
 
-This returns a result object (*EksekResult*) providing the following methods:
+This returns a result object (`EksekResult`) providing the following methods:
 
 - `exit` returns the exit code.
 - `stdout` returns the standard output as a string.
