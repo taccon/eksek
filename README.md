@@ -68,7 +68,7 @@ r.stdout # /tmp
 
 ### Further information
 
-In case you prefer an object oriented method, you can also use the `Eksektuter` class that is used by the `eksek` method directly. The following examples are basically the same:
+In case you prefer an object oriented method, you can also use the `Eksekuter` class that is used by the `eksek` method directly. The following examples are basically the same:
 
 ```ruby
 eksek 'echo Hello'
