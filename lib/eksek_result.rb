@@ -26,4 +26,8 @@ class EksekResult
     raise EksekError, "Command failed: #{@cmd.inspect}" unless success?
     self
   end
+
+  def to_s
+    stdout
+  end
 end

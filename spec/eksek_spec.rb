@@ -101,3 +101,11 @@ RSpec.describe 'Kernel#spawn-style parameters' do
     expect(result.stdout).to eq('Hello World')
   end
 end
+
+RSpec.describe 'EksekResult#to_s' do
+  it 'returns the stdout' do
+    command = 'echo HelloStdout && echo HelloStderr >&2'
+    output = "The output was: #{Eksekuter.new(command).run}."
+    expect(output).to eq('The output was: HelloStdout.')
+  end
+end
