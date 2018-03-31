@@ -14,7 +14,7 @@ Use the `eksek` to execute a command:
 eksek 'echo Hello'
 ```
 
-This returns a result object (`EksekResult`) providing the following methods:
+This returns an `EksekResult` object providing the following methods:
 
 - `exit` returns the exit code.
 - `stdout` returns the standard output as a string.
@@ -51,19 +51,25 @@ r = eksek('read A; echo $A') { File.open('myfile.txt') }
 r.success!
 ```
 
-
 ### Passing other options
 
-The run method can accept a hash of options, according to `Process::spawn`.
+`eksek` has the same signature as `Process#spawn`. This means that:
 
-Additionally, a hash passed as `:env` will have its keys stringified, so that symbols can be used to. For example:
+- the first parameter can optionally be a hash, passed as the process environment;
+- the command can be passed as a single string or as variable-length arguments;
+- other options can be passed as hash arguments.
+
+Additionally, the environment will have its keys stringified, so that symbols can be used too. For example:
 
 ```ruby
-r = eksek 'echo $A', env: {A: "Hello"}
-r.stdout # Hello
+r = eksek { A: 'Hello' }, 'echo $A'
+puts r.stdout # Hello
+
+r = eksek 'echo', 'Hello'
+puts r.stdout # Hello
 
 r = eksek 'echo $PWD', chdir: '/tmp'
-r.stdout # /tmp
+puts r.stdout # /tmp
 ```
 
 ### Further information
@@ -71,9 +77,8 @@ r.stdout # /tmp
 In case you prefer an object oriented method, you can also use the `Eksekuter` class that is used by the `eksek` method directly. The following examples are basically the same:
 
 ```ruby
-eksek 'echo Hello'
-```
-
-```ruby
-Esekuter.new 'echo Hello'
+# With eksek
+eksek 'echo Hello' { 'This goes to stdin.' }
+# With Eksekuter
+Eksekuter.new('echo Hello').run { 'This goes to stdin.' }
 ```
