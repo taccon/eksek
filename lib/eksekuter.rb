@@ -1,11 +1,14 @@
 # frozen_string_literal: true
 
 require 'open3'
+require 'logger'
 
 require_relative 'eksek_result'
 
 # Class that command execution is delegated to by Eksek.
 class Eksekuter
+  LOGGER = Logger.new STDOUT, level: Logger::INFO
+
   def initialize *args, **opts
     @env = args[0].is_a?(Hash) ? args.shift : {}
     @env = @env.each_with_object({}) { |(k, v), o| o[k.to_s] = v }
@@ -44,6 +47,7 @@ class Eksekuter
 
   def spawn_process
     @stdin, @stdout, @stderr, @wait_thr = Open3.popen3(env, *cmd, opts)
+    LOGGER.debug("Spawned process #{cmd}")
     nil
   end
 
