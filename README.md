@@ -80,5 +80,5 @@ In case you prefer an object oriented method, you can also use the `Eksekuter` c
 # With eksek
 eksek 'echo Hello' { 'This goes to stdin.' }
 # With Eksekuter
-Eksekuter.new('echo Hello').run { 'This goes to stdin.' }
+Eksekuter.new.run('echo Hello') { 'This goes to stdin.' }
 ```
