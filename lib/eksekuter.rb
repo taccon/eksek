@@ -6,71 +6,62 @@ require_relative 'eksek_result'
 
 # Class that command execution is delegated to by Eksek.
 class Eksekuter
-  def initialize *args, **opts
-    @env = args[0].is_a?(Hash) ? args.shift : {}
-    @env = @env.each_with_object({}) { |(k, v), o| o[k.to_s] = v }
-    @cmd = args.size == 1 ? args.first : args
-    @opts = opts
+  # @param {Logger} logger
+  def initialize logger: nil
+    @logger = logger
   end
 
-  def run &block
-    spawn_process
-    write_and_close_stdin(&block)
-    wait
-    read_and_close_stdout_stderr
-    assemble_result
+  def run *args, **opts, &block
+    env, cmd = separate_env_and_cmd(args)
+    params = { env: env, cmd: cmd, opts: opts, block: block }
+    popen3_result = spawn_process(params)
+    write_and_close_stdin(params, popen3_result)
+    process_status = wait(popen3_result)
+    out_str, err_str = read_and_close_stdout_stderr(popen3_result)
+    assemble_result(params, process_status, out_str, err_str)
   end
 
   private
 
-  attr_reader(
-    :cmd,
-    :env,
-    :err_str,
-    :opts,
-    :out_str,
-    :process_status,
-    :stdin,
-    :wait_thr,
-  )
-
-  def stdout
-    @stdout ||= StringIO.new('', 'r')
+  def separate_env_and_cmd args
+    env = args[0].is_a?(Hash) ? args.shift : {}
+    env = env.each_with_object({}) { |(k, v), o| o[k.to_s] = v }
+    cmd = args.size == 1 ? args.first : args
+    [env, cmd]
   end
 
-  def stderr
-    @stderr ||= StringIO.new('', 'r')
+  def spawn_process params
+    stdin, stdout, stderr, wait_thr = Open3.popen3(
+      params.fetch(:env), *params.fetch(:cmd), params.fetch(:opts)
+    )
+    { stdin: stdin, stdout: stdout, stderr: stderr, wait_thr: wait_thr }
   end
 
-  def spawn_process
-    @stdin, @stdout, @stderr, @wait_thr = Open3.popen3(env, *cmd, opts)
-    nil
-  end
-
-  def write_and_close_stdin
-    return if stdin.closed? || !block_given?
-    block_result = yield stdin
+  def write_and_close_stdin params, popen3_result
+    stdin = popen3_result.fetch(:stdin)
+    return if stdin.closed? || params.fetch(:block).nil?
+    block_result = params.fetch(:block).call(stdin)
     block_result = StringIO.new(block_result) if block_result.is_a? String
     IO.copy_stream(block_result, stdin) if block_result.respond_to? :read
     stdin.close
     nil
   end
 
-  def wait
-    @process_status = wait_thr.value
+  def wait popen3_result
+    popen3_result.fetch(:wait_thr).value # returns the process status
   end
 
-  def read_and_close_stdout_stderr
-    streams = [stdout, stderr]
-    @out_str, @err_str = streams.map(&:read).map(&:chomp)
+  def read_and_close_stdout_stderr popen3_result
+    streams = [popen3_result.fetch(:stdout), popen3_result.fetch(:stderr)]
+    out_str, err_str = streams.map(&:read).map(&:chomp)
     streams.each(&:close)
-    nil
+    [out_str, err_str]
   end
 
-  def assemble_result
+  def assemble_result params, process_status, out_str, err_str
     EksekResult.new(
-      env,
-      cmd,
+      params.fetch(:env),
+      params.fetch(:cmd),
       process_status.exitstatus,
       process_status.success?,
       out_str,

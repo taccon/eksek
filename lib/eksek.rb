@@ -9,7 +9,7 @@ module Kernel
   private
 
   def eksek *args, **opts, &block
-    Eksekuter.new(*args, **opts).run(&block)
+    Eksekuter.new.run(*args, **opts, &block)
   end
 
   def eksek! *args, **opts, &block
