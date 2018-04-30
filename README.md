@@ -1,6 +1,7 @@
 # eksek
 
 [![Travis](https://img.shields.io/travis/taccon/eksek.svg)](https://travis-ci.org/taccon/eksek)
+[![Coverage Status](https://coveralls.io/repos/github/taccon/eksek/badge.svg?branch=coveralls)](https://coveralls.io/github/taccon/eksek?branch=coveralls)
 
 `eksek` is a library to run shell commands synchronously and obtain any of the standard output, standard error, and exit code with flexibility.
 
