@@ -9,16 +9,23 @@ class Eksekuter
   # @param {Logger} logger
   def initialize logger: nil
     @logger = logger
+    @stdout_buffer = nil
+    @stderr_buffer = nil
+    @stdin_buffer = nil
   end
 
   def run *args, **opts, &block
     env, cmd = separate_env_and_cmd(args)
+    # p opts
+    capture = opts.delete(:capture) || false
+    streams = get_out_err_streams(capture)
+
+    set_streams_in_opts streams, opts
+
     params = { env: env, cmd: cmd, opts: opts, block: block }
-    popen3_result = spawn_process(params)
-    write_and_close_stdin(params, popen3_result)
-    process_status = wait(popen3_result)
-    out_str, err_str = read_and_close_stdout_stderr(popen3_result)
-    assemble_result(params, process_status, out_str, err_str)
+
+    process_status = run_process(params, streams)
+    assemble_result(params, process_status, streams)
   end
 
   private
@@ -30,42 +37,48 @@ class Eksekuter
     [env, cmd]
   end
 
-  def spawn_process params
-    stdin, stdout, stderr, wait_thr = Open3.popen3(
-      params.fetch(:env), *params.fetch(:cmd), params.fetch(:opts)
-    )
-    { stdin: stdin, stdout: stdout, stderr: stderr, wait_thr: wait_thr }
+  def get_out_err_streams capture
+    if capture
+      out_readable, out_writable = IO.pipe
+      err_readable, err_writable = IO.pipe
+      return {
+        out: {readable: out_readable, writable: out_writable},
+        err: {readable: err_readable, writable: err_writable}
+      }
+    end
+
+    {
+      out: {readable: nil, writable: STDOUT},
+      err: {readable: nil, writable: STDERR}
+    }
   end
 
-  def write_and_close_stdin params, popen3_result
-    stdin = popen3_result.fetch(:stdin)
-    return if stdin.closed? || params.fetch(:block).nil?
-    block_result = params.fetch(:block).call(stdin)
-    block_result = StringIO.new(block_result) if block_result.is_a? String
-    IO.copy_stream(block_result, stdin) if block_result.respond_to? :read
-    stdin.close
-    nil
+  def set_streams_in_opts streams, opts
+    opts[:out] = streams.fetch(:out).fetch(:writable) unless opts[:out]
+    opts[:err] = streams.fetch(:err).fetch(:writable) unless opts[:err]
   end
 
-  def wait popen3_result
-    popen3_result.fetch(:wait_thr).value # returns the process status
+  def run_process params, streams
+    pid = spawn(params.fetch(:env), *params.fetch(:cmd), params.fetch(:opts))
+    close_streams streams
+    _, process_status = Process.wait2(pid)
+    process_status
   end
 
-  def read_and_close_stdout_stderr popen3_result
-    streams = [popen3_result.fetch(:stdout), popen3_result.fetch(:stderr)]
-    out_str, err_str = streams.map(&:read).map(&:chomp)
-    streams.each(&:close)
-    [out_str, err_str]
+  def close_streams streams
+    out_writable = streams.fetch(:out).fetch(:writable)
+    err_writable = streams.fetch(:err).fetch(:writable)
+    out_writable&.close if out_writable != STDOUT
+    err_writable&.close if err_writable != STDERR
   end
 
-  def assemble_result params, process_status, out_str, err_str
+  def assemble_result params, process_status, streams
     EksekResult.new(
       params.fetch(:env),
       params.fetch(:cmd),
       process_status.exitstatus,
-      process_status.success?,
-      out_str,
-      err_str,
+      streams.fetch(:out).fetch(:readable),
+      streams.fetch(:err).fetch(:readable)
     )
   end
 end
