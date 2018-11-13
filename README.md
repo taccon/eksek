@@ -33,25 +33,6 @@ puts eksek!('echo Hello').stdout # Hello
 puts eksek('echo Hello').success!.stdout
 ```
 
-### Writing to stdin
-
-To write into the standard input a block can be used:
-
-```ruby
-r = eksek('read A; echo $A') { |stdin| stdin.write "Hello" }
-r.success!
-```
-
-If the block returns a `String` or `IO`, it will be written into the stdio.
-
-```ruby
-r = eksek('read A; echo $A') { "Hello" }
-r.success!
-
-r = eksek('read A; echo $A') { File.open('myfile.txt') }
-r.success!
-```
-
 ### Passing other options
 
 `eksek` has the same signature as `Process#spawn`. This means that:
