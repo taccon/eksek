@@ -5,7 +5,6 @@ require_relative 'eksek_error'
 # Describes a result object to be used for evaluating
 # return values from a command
 class EksekResult
-  # rubocop:disable Metrics/ParameterLists
   def initialize env, cmd, exit_code, out_stream, err_stream
     @env = env
     @cmd = cmd

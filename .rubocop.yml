@@ -8,3 +8,7 @@ Style/TrailingCommaInArrayLiteral:
   EnforcedStyleForMultiline: comma
 Style/TrailingCommaInHashLiteral:
   EnforcedStyleForMultiline: comma
+Metrics/MethodLength:
+  Max: 15
+Layout/MultilineMethodCallIndentation:
+  EnforcedStyle: indented
