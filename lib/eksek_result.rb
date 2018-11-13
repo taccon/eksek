@@ -28,9 +28,17 @@ class EksekResult
     @exit_code.zero?
   end
 
+  def ?
+    success?
+  end
+
   def success!
     raise EksekError, "Command failed: #{@cmd.inspect}" unless success?
     self
+  end
+
+  def !
+    success!
   end
 
   def to_s

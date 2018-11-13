@@ -7,11 +7,20 @@ RSpec.describe 'Eksekuter success methods' do
   it 'returns true or false depending on the exit code' do
     expect(Eksekuter.new.run('true').success?).to be(true)
     expect(Eksekuter.new.run('exit 1').success?).to be(false)
+
+    expect(Eksekuter.new.run('true').?).to be(true)
+    expect(Eksekuter.new.run('exit 1').?).to be(false)
   end
 
   it 'fails when appropriate' do
     expect { Eksekuter.new.run('true').success! }.not_to raise_error
     expect { Eksekuter.new.run('exit 1').success! }.to raise_error EksekError
+
+    expect { Eksekuter.new.run('true').! }.not_to raise_error
+    expect { Eksekuter.new.run('exit 1').! }.to raise_error EksekError
+
+    expect { !Eksekuter.new.run('true') }.not_to raise_error
+    expect { !Eksekuter.new.run('exit 1') }.to raise_error EksekError
   end
 
   it 'returns the exit code' do
