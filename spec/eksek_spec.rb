@@ -23,29 +23,36 @@ end
 
 RSpec.describe 'Eksekuter capturing options' do
   it 'captures the stdout and stderr separately' do
-    expect(Eksekuter.new.run('printf Hello', capture: true).stdout).to eq('Hello')
-    expect(Eksekuter.new.run('printf Hello >&2', capture: true).stderr).to eq('Hello')
+    expect(Eksekuter.new.run('printf Hello', capture: true).stdout)
+      .to eq('Hello')
+    expect(Eksekuter.new.run('printf Hello >&2', capture: true).stderr)
+      .to eq('Hello')
   end
 
   it 'outputs to stdout/stderr when disabling I/O capturing' do
-    expect { Eksekuter.new.run('printf Hello', capture: false) }.to output('Hello').to_stdout_from_any_process
-    expect { Eksekuter.new.run('printf Hello >&2', capture: false) }.to output('Hello').to_stderr_from_any_process
+    expect { Eksekuter.new.run('printf Hello', capture: false) }
+      .to output('Hello').to_stdout_from_any_process
+    expect { Eksekuter.new.run('printf Hello >&2', capture: false) }
+      .to output('Hello').to_stderr_from_any_process
   end
 end
 
 RSpec.describe 'Kernel#spawn-style parameters' do
   it 'accepts a Hash as an optional first parameter' do
-    result = Eksekuter.new.run({ 'TEXT' => 'Hello' }, 'printf $TEXT', capture: true)
+    result = Eksekuter.new
+      .run({ 'TEXT' => 'Hello' }, 'printf $TEXT', capture: true)
     expect(result.stdout).to eq('Hello')
   end
 
   it 'stringifies the keys of the environment' do
-    result = Eksekuter.new.run({ TEXT: 'Hello' }, 'printf $TEXT', capture: true)
+    result = Eksekuter.new
+      .run({ TEXT: 'Hello' }, 'printf $TEXT', capture: true)
     expect(result.stdout).to eq('Hello')
   end
 
   it 'accepts a variable-length parameter list as command' do
-    result = Eksekuter.new.run('echo', 'Hello', 'World', capture: true)
+    result = Eksekuter.new
+      .run('echo', 'Hello', 'World', capture: true)
     expect(result.stdout).to eq("Hello World\n")
   end
 end

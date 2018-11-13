@@ -42,14 +42,14 @@ class Eksekuter
       out_readable, out_writable = IO.pipe
       err_readable, err_writable = IO.pipe
       return {
-        out: {readable: out_readable, writable: out_writable},
-        err: {readable: err_readable, writable: err_writable}
+        out: { readable: out_readable, writable: out_writable },
+        err: { readable: err_readable, writable: err_writable }
       }
     end
 
     {
-      out: {readable: nil, writable: STDOUT},
-      err: {readable: nil, writable: STDERR}
+      out: { readable: nil, writable: STDOUT },
+      err: { readable: nil, writable: STDERR }
     }
   end
 
@@ -78,7 +78,7 @@ class Eksekuter
       params.fetch(:cmd),
       process_status.exitstatus,
       streams.fetch(:out).fetch(:readable),
-      streams.fetch(:err).fetch(:readable)
+      streams.fetch(:err).fetch(:readable),
     )
   end
 end
