@@ -14,71 +14,58 @@ class Eksekuter
     @stdin_buffer = nil
   end
 
-  def run *args, **opts, &block
-    env, cmd = separate_env_and_cmd(args)
-    # p opts
-    capture = opts.delete(:capture) || false
-    streams = get_out_err_streams(capture)
+  # Wraps around Kernel#spawn so that the return value is an EksekResult.
+  # @return EksekResult
+  def exec *args, **opts
+    env, cmd = split_env_and_cmd(args)
+    params = { env: env, cmd: cmd, opts: opts }
+    process_status = spawn_and_get_status(params)
+    assemble_result(params, process_status)
+  end
 
-    set_streams_in_opts streams, opts
-
-    params = { env: env, cmd: cmd, opts: opts, block: block }
-
-    process_status = run_process(params, streams)
-    assemble_result(params, process_status, streams)
+  # Like Eksekuter#exec but the :out and :err options are ignored; instead
+  # the output is attached to the EksekResult object returned.
+  # Returns an EksekResult object which getters :stdout and :stderr containing
+  # the corresponding output of the spawned process.
+  # @return EksekResult
+  def capture *args, **opts
+    env, cmd = split_env_and_cmd(args)
+    out_read, out_write = IO.pipe
+    err_read, err_write = IO.pipe
+    opts2 = opts.merge(out: out_write, err: err_write)
+    params = { env: env, cmd: cmd, opts: opts2 }
+    process_status = spawn_and_get_status(params)
+    out_write.close
+    err_write.close
+    assemble_result(params, process_status, out_read, err_read)
   end
 
   private
 
-  def separate_env_and_cmd args
-    env = args[0].is_a?(Hash) ? args.shift : {}
+  def split_env_and_cmd args
+    cmd_args = args.clone
+    env = cmd_args.first.is_a?(Hash) ? cmd_args.shift : {}
     env = env.each_with_object({}) { |(k, v), o| o[k.to_s] = v }
-    cmd = args.size == 1 ? args.first : args
+    cmd = cmd_args.size == 1 ? cmd_args.first : cmd_args
     [env, cmd]
   end
 
-  def get_out_err_streams capture
-    if capture
-      out_readable, out_writable = IO.pipe
-      err_readable, err_writable = IO.pipe
-      return {
-        out: { readable: out_readable, writable: out_writable },
-        err: { readable: err_readable, writable: err_writable }
-      }
-    end
-
-    {
-      out: { readable: nil, writable: STDOUT },
-      err: { readable: nil, writable: STDERR }
-    }
-  end
-
-  def set_streams_in_opts streams, opts
-    opts[:out] = streams.fetch(:out).fetch(:writable) unless opts[:out]
-    opts[:err] = streams.fetch(:err).fetch(:writable) unless opts[:err]
-  end
-
-  def run_process params, streams
-    pid = spawn(params.fetch(:env), *params.fetch(:cmd), params.fetch(:opts))
-    close_streams streams
+  def spawn_and_get_status params
+    env = params.fetch(:env)
+    cmd = params.fetch(:cmd)
+    opts = params.fetch(:opts)
+    pid = spawn(env, *cmd, opts)
     _, process_status = Process.wait2(pid)
     process_status
   end
 
-  def close_streams streams
-    out_writable = streams.fetch(:out).fetch(:writable)
-    err_writable = streams.fetch(:err).fetch(:writable)
-    out_writable&.close if out_writable != STDOUT
-    err_writable&.close if err_writable != STDERR
-  end
-
-  def assemble_result params, process_status, streams
+  def assemble_result params, process_status, out_stream = nil, err_stream = nil
     EksekResult.new(
       params.fetch(:env),
       params.fetch(:cmd),
       process_status.exitstatus,
-      streams.fetch(:out).fetch(:readable),
-      streams.fetch(:err).fetch(:readable),
+      out_stream,
+      err_stream,
     )
   end
 end
