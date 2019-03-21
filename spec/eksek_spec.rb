@@ -37,6 +37,23 @@ RSpec.describe 'Eksekuter capturing options' do
   end
 end
 
+RSpec.describe 'Standard input' do
+  it 'can write to a custom IO object' do
+    readable, writable = IO.pipe
+    Eksekuter.new.run('printf Hello', out: writable)
+    writable.close
+    expect(readable.read).to eq('Hello')
+  end
+
+  it 'can read from a custom IO object' do
+    readable, writable = IO.pipe
+    writable.write 'Hello'
+    writable.close
+    result = Eksekuter.new.run('read A; printf $A', in: readable, capture: true)
+    expect(result.stdout).to eq('Hello')
+  end
+end
+
 RSpec.describe 'Kernel#spawn-style parameters' do
   it 'accepts a Hash as an optional first parameter' do
     result = Eksekuter.new
