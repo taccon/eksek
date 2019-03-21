@@ -9,17 +9,23 @@
 
 ### Basic usage
 
-Use the `eksek` to execute a command:
+Use the `eksek` method to execute a command:
 
 ```ruby
 eksek 'echo Hello'
 ```
 
-This returns an `EksekResult` object providing the following methods:
+or the `kapture` method to execute a command but "capture" the standard output and standard error in a fashion similar to `Kernel#\`` (backticks) or `%x()`.
+
+```ruby
+kapture 'echo Hello'
+```
+
+These methods return an `EksekResult` object providing the following methods:
 
 - `exit` returns the exit code.
-- `stdout` returns the standard output as a string.
-- `stderr` returns the standard error as a string.
+- `stdout` returns the standard output as a string if `kapture` was called.
+- `stderr` returns the standard error as a string if `kapture` was called.
 - `success?` returns `true` or `false` depending of the exit code (`0` for `true`).
 - `success!` throws an exception if the command exited with a non-0 code.
 
@@ -60,7 +66,10 @@ In case you prefer an object oriented method, you can also use the `Eksekuter` c
 
 ```ruby
 # With eksek
-eksek 'echo Hello' { 'This goes to stdin.' }
+eksek 'echo Hello'
+kapture 'echo Hello'
+
 # With Eksekuter
-Eksekuter.new.run('echo Hello') { 'This goes to stdin.' }
+Eksekuter.new.exec('echo Hello')
+Eksekuter.new.capture('echo Hello')
 ```
