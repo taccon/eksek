@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = 'eksek'
-  s.version = '0.1.0'
+  s.version = '0.2.0'
   s.authors = ['Johnny Lee-Othon', 'Thomas Bretzke']
   s.homepage = 'https://github.com/taccon/eksek'
   s.summary = 'A better backticks'
