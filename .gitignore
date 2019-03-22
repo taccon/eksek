@@ -1,4 +1,5 @@
-Gemfile.lock
-.idea
-coverage
 .bundle
+.idea
+/*.gem
+Gemfile.lock
+coverage
