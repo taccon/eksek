@@ -16,11 +16,19 @@ module Kernel
     eksek(*args, **opts, &block).success!
   end
 
+  def eksek? *args, **opts, &block
+    eksek(*args, **opts, &block).success?
+  end
+
   def kapture *args, **opts, &block
     Eksekuter.new.capture(*args, **opts, &block)
   end
 
   def kapture! *args, **opts, &block
     kapture(*args, **opts, &block).success!
+  end
+
+  def kapture? *args, **opts, &block
+    kapture(*args, **opts, &block).success?
   end
 end
